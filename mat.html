@@ -1,1 +1,30 @@
-
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Machine Assembly Translator</title>
+        <link href="mat.css" type="text/css" rel="stylesheet" />
+        <script src="mat.js" type="text/javascript"></script>
+    </head>
+    <body>
+        <h1>Machine Assembly Translator</h1>
+        <button id='typeButton'>Choose type:</button>
+        <div id='dropdown'>
+            <div style='display:none'> <!--Select type (dropdownlist)-->
+                <button id='a'>Assembly</button>
+                <button id='b'>Machine (Binary)</button>
+                <button id='c'>Machine (Hexadecimal)</button>
+            </div>
+        </div>
+        <input id='input' type='text'/> <!--Input field-->
+        <button id='submit'>Submit</button> 
+        <div id='output'></div> <!--Output result-->
+        <div class='record' style='display:flex'> <!--Record Column Names-->
+            <div style='margin-right:20px; width: 50px'>No.</div>
+            <div style='margin-right:20px; width: 100px'>Assembly</div>
+            <div style='margin-right:20px; width: 150px'>Instruction</div>
+            <div style='margin-right:20px; width: 400px'>Binary</div>
+            <div style='width: 100px'>Hexadecimal</div>
+        <div>
+        <div id='record'></div> <!--Record-->
+    </body>
+</html>

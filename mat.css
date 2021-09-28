@@ -1,0 +1,16 @@
+div.record {
+    text-align: center;
+    font-style: oblique;
+    font-size: 20px;
+}
+
+#output {
+    width: 700px;
+    height: 80px;
+    background-color: wheat;
+    font-size: 40px;
+}
+
+a {
+    margin-right: 50px;
+}
