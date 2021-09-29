@@ -21,13 +21,19 @@ const jAssembler = ['j', 'jal'];
 const jDict = {'j': 2, 'jal': 3};
 const jType = jAssembler.length;
 
+const dToH = {0: '0', 1: '1', 2: '2', 3: '3',  4: '4',  5: '5',  6: '6', 7: '7',
+             8: '8', 9: '9', 10: 'A', 11: 'B', 12: 'C', 13: 'D', 14: 'E', 15: 'F'};
+
 //variable
 let currentType = '';
 
 let assembly = '';
 let instruction = '';
 let binary = '';
-let Hexadecimal = '';
+let hexadecimal = '';
+
+let record = [];
+let num = 1;
 
 /* render type button display text */
 const setTypeButton = () => {
@@ -50,6 +56,18 @@ const renderResult = () => {
         result += "<a>" + instruction[i] + " </a>";
     }
     document.getElementById('output').innerHTML = result;
+
+    let recording = '';
+    for (let i = 1; i < num; i++) {
+        recording += "<div class='result'><div style='margin-right:20px; width: 100px'>" + record[i][0] + "</div>"
+            + "<div style='margin-right:20px; width: 150px'>" + record[i][1] + "</div>"
+            + "<div style='margin-right:20px; width: 150px'>" + record[i][2] + "</div>"
+            + "<div style='margin-right:20px; width: 400px'>" + record[i][3][0] + "</div>"
+            + "<div style='width: auto'>" + record[i][4] + "</div></div>"
+            + "<div class='result2'><div style='width: 460px'></div>"
+            + "<div style='margin-right:20px; width: 400px'>" + record[i][3][1] + "</div></div>";
+    }
+    document.getElementById('record').innerHTML = recording;
 }
 
 /* check if the clicked component's id match the id obtained from path */
@@ -82,7 +100,6 @@ const checkClick = (e) => {
     // check if clicked submit button
     if (isOnId(e.path, 'submit')) {
         let input = document.getElementById('input').value;
-        console.log(input);
         getResult(currentType, input);
         renderResult();
     }
@@ -118,7 +135,82 @@ const isJ = (assembler) => {
     return false;
 }
 
-/* translate assembly to binary */
+/* convert decimal to binary (unsigned) and fill 0s to match up the length */
+const dToBu = (string, length) => {
+    let intD = parseInt(string);
+    let result = '';
+
+    while (intD > 0) {
+        result = intD%2 + result;
+        intD = Math.floor(intD/2);
+    }
+
+    let currentLength = result.length;
+    for (let i = length - currentLength; i > 0; i--) {
+        result = '0' + result;
+    }
+
+    return result;
+}
+
+/* convert decimal to binary (two's complement) */
+const dToB = (string, length) => {
+    let result = '';
+    let sign = (parseInt(string) >= 0)? false : true;
+    let intD = (sign)? string.split('-')[1] : string;
+
+    result = dToBu(intD, length);
+
+    if (sign) {
+        let temp = '';
+        for (let i = 0; i < result.length; i++) {
+            temp += (result[i] === '0')? '1' : '0';
+        }
+        result = temp;
+
+        let currentBit = result.length - 1;
+        let passBit;
+        do {
+            if (result[currentBit] === '0') {
+                let firstpart = result.substr(0, currentBit);
+                let secondpart = (currentBit === result.length - 1)? '' : result.substr(currentBit + 1);
+                result = firstpart + '1' + secondpart;
+                passBit = 0;
+            }
+            else {
+                let firstpart = result.substr(0, currentBit);
+                let secondpart = (currentBit === result.length - 1)? '' : result.substr(currentBit + 1);
+                result = firstpart + '0' + secondpart;
+                currentBit--;
+                passBit = 1;
+            }
+        } while (passBit === 1 && currentBit >= 0);
+    }
+    return result;
+}
+
+/* convert binary(format: type) to binary(format: 4 bits) */
+const format4 = (input) => {
+    let concat = '';
+    let result = [];
+
+    for (let i = 0; i < input.length; i++) {
+        concat += input[i];
+    }
+
+    for (let i = 0; i < 8; i++) {
+        let halfByte = '';
+        halfByte += concat[i*4];
+        halfByte += concat[i*4+1];
+        halfByte += concat[i*4+2];
+        halfByte += concat[i*4+3];
+        
+        result[i] = halfByte;
+    }
+    return result;
+}
+
+/* translate assembly to instruction */
 const assemblyToInstruction = (string) => {
     let assembler = string.split(' ')[0];
     let leftover = string.split(' ')[1];
@@ -252,13 +344,80 @@ const assemblyToInstruction = (string) => {
     return result;
 }
 
+/* translate instruction to binary */
+const instructionToB = (input) => {
+    // R-type: 6, 5, 5, 5, 5, 6
+    // I-type: 6, 5, 5, 16
+    // J-type: 6, 26
+
+    let output = [];
+    let result = [];
+    if (input[0] === 0) {
+        let rs, rt, rd = '0';
+
+        if (input[5] !== 8 && input[5] !== 9) {
+            rs = input[1].split('$')[1];
+            rt = input[2].split('$')[1];
+            rd = input[3].split('$')[1];
+        }
+        else {
+            rs = input[1].split('$')[1];
+        }
+        output[0] = '000000';
+        output[1] = dToBu(rs, 5);
+        output[2] = dToBu(rt, 5);
+        output[3] = dToBu(rd, 5);
+        output[4] = dToBu(input[4], 5);
+        output[5] = dToBu(input[5], 6);
+    }
+    else if (input[0] === 2 || input[0] === 3) {
+        let op = input[0];
+        let imm = input[1];
+
+        output[0] = dToBu(op, 6);
+        output[1] = dToBu(parseInt(imm, 16), 26);
+    }
+    else {
+        let op = input[0];
+        let rs = input[1].split('$')[1];
+        let rd = input[2].split('$')[1];
+        let imm = input[3];
+
+        output[0] = dToBu(op, 6);
+        output[1] = dToBu(rs, 5);
+        output[2] = dToBu(rd, 5);
+        
+        if (op === iDict['addi'] || op === iDict['addiu']
+        || op === iDict['slti'] || op === iDict['sltiu']) {
+            output[3] = dToB(imm, 16);
+        }
+        else {
+            output[3] = dToBu(parseInt(imm, 16), 16);
+        }
+    }
+    result[0] = output;
+    result[1] = format4(output);
+    return result;
+}
+
+/* translate binary to hexadecimal */
+const bToH = (input) => {
+    let result = '0x';
+    for (let i = 0; i < 8; i++) {
+        result += dToH[parseInt(input[i], 2)];
+    }
+    return result;
+}
+
 /* translate to result */
 const getResult = (type, string) => {
     if (type === 'Assembly') {
         assembly = string;
         instruction = assemblyToInstruction(string);
-        // binary = formatToB(instruction);
-        // Hexadecimal = bToH(binary);
+        binary = instructionToB(instruction);
+        hexadecimal = bToH(binary[1]);
+        record[num] = [num, assembly, instruction, binary, hexadecimal];
+        num++;
     }
     else if (type === 'Machine (Binary)') {
 
@@ -271,18 +430,6 @@ const getResult = (type, string) => {
 window.addEventListener('click', function (e) {
     checkClick(e);
 
-    // let a = 'a, b,c';
-    // console.log(a.split(',')[1].trim().length);
-    // let testAssembly = 'jr $31';
-    // console.log(testAssembly, assemblyToInstruction(testAssembly));
-    // let testAssembly1 = 'bne $8,$9,0x18';
-    // console.log(testAssembly1, assemblyToInstruction(testAssembly1));
-    // let testAssembly2 = 'jal 0x800';
-    // console.log(testAssembly2, assemblyToInstruction(testAssembly2));
+    // let test = '-2';
+    // console.log(test, dToB(test, 16));
 })
-
-        // // this is for instruction to binary
-        // for (let i = 0; i < result.length; i++) {
-        //     let maxBits = (i === 0 || i === 5)? 6 : 5;
-        //     result[i] = intToB(result[i], maxBits);
-        // }
