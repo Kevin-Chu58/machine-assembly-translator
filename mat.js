@@ -24,6 +24,11 @@ const jType = jAssembler.length;
 const dToH = {0: '0', 1: '1', 2: '2', 3: '3',  4: '4',  5: '5',  6: '6', 7: '7',
              8: '8', 9: '9', 10: 'A', 11: 'B', 12: 'C', 13: 'D', 14: 'E', 15: 'F'};
 
+const registerSpecial = {'zero': '$0', 'at': '$1', 'v0': '$2', 'v1': '$3', 'a0': '$4', 'a1': '$5', 'a2': '$6', 'a3': '$7',
+                 't0': '$8', 't1': '$9', 't2': '$10', 't3': '$11', 't4': '$12', 't5': '$13', 't6': '$14', 't7': '$15',
+                 't8': '$24', 't9': '$25', 's0': '$16', 's1': '$17', 's2': '$18', 's3': '$19', 's4': '$20', 's5': '$21',
+                 's6': '$22', 's7': '$23', 'k0': '$26', 'k1': '$27', 'gp': '$28', 'sp': '$29', 'fp': '$30', 'ra': '$31'};
+
 //variable
 let currentType = '';
 
@@ -70,6 +75,34 @@ const renderResult = () => {
     document.getElementById('record').innerHTML = recording;
 }
 
+/* set note according to the type button clicked */
+const setNote = () => {
+    let result = '';
+    if (currentType === 'Assembly') {
+        result += 'Format Instruction:\n';
+        result += '1) NO SPACE between comma\n';
+        result += '2) XX is for registers (can use special names that do not start with "$" sign)\n';
+        result += '3) CONSTANT can be either decimal or hexadecimal\n';
+        result += '4) ADDRESS has to be hexadecimal\n\n';
+        result += 'R-type:\n';
+        result += '=>    assembler XX,XX,XX\n';
+        result += '=>    [jr, jalr] assembler XX\n';
+        result += 'I-type:\n';
+        result += "=>   (1) assembler XX,XX,CONSTANT\n";
+        result += '=>   (2) assembler XX,CONSTANT(XX)\n';
+        result += 'J-type:\n';
+        result += '=>    assembler ADDRESS\n';
+
+    }
+    else if (true) {
+
+    }
+    else if (true) {
+
+    }
+    document.getElementById('note').innerText = result;
+}
+
 /* check if the clicked component's id match the id obtained from path */
 const isOnId = (path,id) => path.some(element => element.id == id);
 
@@ -96,6 +129,7 @@ const checkClick = (e) => {
         currentType = document.getElementById('c').innerText;
         setTypeButton();
     }
+    setNote();
 
     // check if clicked submit button
     if (isOnId(e.path, 'submit')) {
@@ -210,6 +244,14 @@ const format4 = (input) => {
     return result;
 }
 
+/* turn special register names to generic register names */
+const toRegister = (input) => {
+    if (registerSpecial[input] !== undefined) {
+        return registerSpecial[input];
+    }
+    return input;
+}
+
 /* translate assembly to instruction */
 const assemblyToInstruction = (string) => {
     let assembler = string.split(' ')[0];
@@ -280,9 +322,9 @@ const assemblyToInstruction = (string) => {
                 break;
         }
         result[0] = 0;
-        result[1] = rs;
-        result[2] = rt;
-        result[3] = rd;
+        result[1] = toRegister(rs);
+        result[2] = toRegister(rt);
+        result[3] = toRegister(rd);
         result[4] = shamt;
         result[5] = rDict[assembler];
     }
@@ -325,8 +367,8 @@ const assemblyToInstruction = (string) => {
                 break;
         }
         result[0] = op;
-        result[1] = rs;
-        result[2] = rd;
+        result[1] = toRegister(rs);
+        result[2] = toRegister(rd);
         result[3] = imm;
     }
 
@@ -386,14 +428,7 @@ const instructionToB = (input) => {
         output[0] = dToBu(op, 6);
         output[1] = dToBu(rs, 5);
         output[2] = dToBu(rd, 5);
-        
-        if (op === iDict['addi'] || op === iDict['addiu']
-        || op === iDict['slti'] || op === iDict['sltiu']) {
-            output[3] = dToB(imm, 16);
-        }
-        else {
-            output[3] = dToBu(parseInt(imm, 16), 16);
-        }
+        output[3] = dToB(imm, 16);
     }
     result[0] = output;
     result[1] = format4(output);
@@ -432,4 +467,12 @@ window.addEventListener('click', function (e) {
 
     // let test = '-2';
     // console.log(test, dToB(test, 16));
+})
+
+window.addEventListener('keyup', function (e) {
+    if (e.key === 'Enter') {
+        let input = document.getElementById('input').value;
+        getResult(currentType, input);
+        renderResult();
+    }
 })
